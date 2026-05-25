@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Env } from './env'
+import type { Env } from './env.js'
 
 export function createAnonSupabase(env: Env) {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return null
@@ -13,4 +13,3 @@ export function createUserSupabase(env: Env, accessToken: string) {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   })
 }
-

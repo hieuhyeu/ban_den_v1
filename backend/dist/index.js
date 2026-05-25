@@ -2,9 +2,9 @@ import 'dotenv/config';
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import { z } from 'zod';
-import { getEnv } from './env';
-import { createAnonSupabase, createUserSupabase } from './supabase';
-import { isValidUsername, normalizeUsername, usernameToEmail } from './username';
+import { getEnv } from './env.js';
+import { createAnonSupabase, createUserSupabase } from './supabase.js';
+import { isValidUsername, normalizeUsername, usernameToEmail } from './username.js';
 const env = getEnv();
 const app = Fastify({ logger: true });
 await app.register(cors, {
