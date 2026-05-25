@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+#app {
+  min-height: 100svh;
+}
+
+.score-bump-up,
+.score-bump-down {
+  will-change: transform;
+}
+
+.score-bump-up {
+  animation: scoreBumpUp 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.score-bump-down {
+  animation: scoreBumpDown 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes scoreBumpUp {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  60% {
+    transform: translate3d(0, -2px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes scoreBumpDown {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  60% {
+    transform: translate3d(0, 2px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-bump-up,
+  .score-bump-down {
+    animation: none !important;
+  }
+}
