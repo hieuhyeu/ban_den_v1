@@ -1,17 +1,28 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginPage from '../views/LoginPage.vue'
-import PlayerEditPage from '../views/PlayerEditPage.vue'
-import RandomPage from '../views/RandomPage.vue'
-import ScoreboardPage from '../views/ScoreboardPage.vue'
 import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'scoreboard', component: ScoreboardPage, meta: { requiresAuth: true } },
-    { path: '/random', name: 'random', component: RandomPage, meta: { requiresAuth: true } },
-    { path: '/players/:id/edit', name: 'playerEdit', component: PlayerEditPage, meta: { requiresAuth: true } },
-    { path: '/login', name: 'login', component: LoginPage },
+    {
+      path: '/',
+      name: 'scoreboard',
+      component: () => import('../views/ScoreboardPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/random',
+      name: 'random',
+      component: () => import('../views/RandomPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/players/:id/edit',
+      name: 'playerEdit',
+      component: () => import('../views/PlayerEditPage.vue'),
+      meta: { requiresAuth: true, transition: 'slide-left' },
+    },
+    { path: '/login', name: 'login', component: () => import('../views/LoginPage.vue') },
   ],
 })
 

@@ -44,5 +44,8 @@ export async function uploadAvatar(params: {
     throw new Error(`storage_upload_failed:${code} ${anyErr.error ?? anyErr.message ?? 'unknown'}`)
   }
   const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-  return { path, publicUrl: data.publicUrl }
+  const url = data.publicUrl
+  const sep = url.includes('?') ? '&' : '?'
+  const publicUrl = `${url}${sep}v=${Date.now()}`
+  return { path, publicUrl }
 }

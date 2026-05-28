@@ -14,6 +14,7 @@ const board = useBoardStore()
 const playerId = computed(() => String(route.params.id ?? ''))
 const player = computed(() => board.activePlayers.find((p) => p.id === playerId.value) ?? null)
 const busy = ref(false)
+const avatarBusy = ref(false)
 const errorText = ref<string | null>(null)
 
 const draftName = ref('')
@@ -67,6 +68,7 @@ async function onAvatarPicked(e: Event) {
   const objectUrl = URL.createObjectURL(file)
   board.setPlayerAvatarLocal(player.value.id, objectUrl)
   busy.value = true
+  avatarBusy.value = true
   errorText.value = null
   try {
     const res = await uploadAvatar({ token: auth.token, userId: auth.userId, playerId: player.value.id, file })
@@ -78,17 +80,20 @@ async function onAvatarPicked(e: Event) {
   } finally {
     URL.revokeObjectURL(objectUrl)
     busy.value = false
+    avatarBusy.value = false
   }
 }
 
 async function removeAvatar() {
   if (!player.value) return
   busy.value = true
+  avatarBusy.value = true
   errorText.value = null
   try {
     await board.setPlayerAvatarUrl(player.value.id, null)
   } finally {
     busy.value = false
+    avatarBusy.value = false
   }
 }
 
@@ -122,6 +127,20 @@ onMounted(async () => {
 
 <template>
   <div class="mx-auto flex h-[100svh] w-full max-w-md flex-col">
+    <div
+      v-if="avatarBusy"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 px-6 backdrop-blur"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div class="w-full max-w-xs rounded-3xl border border-zinc-800 bg-zinc-900/60 p-5 text-center">
+        <div class="text-sm font-semibold text-zinc-100">Đang cập nhật ảnh…</div>
+        <div class="mt-4 flex items-center justify-center">
+          <div class="h-10 w-10 animate-spin rounded-full border-[3px] border-zinc-700 border-t-violet-500" />
+        </div>
+      </div>
+    </div>
+
     <div class="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
       <div class="mx-auto flex h-14 w-full max-w-md items-center justify-between gap-3 px-3">
         <button

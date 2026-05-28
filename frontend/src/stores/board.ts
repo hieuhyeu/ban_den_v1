@@ -150,6 +150,18 @@ function normalizeBoard(payload: BoardPayload | null): Board {
   }
 }
 
+let refreshInFlight: Promise<void> | null = null
+let mutateChain: Promise<unknown> = Promise.resolve()
+
+function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+  const next = mutateChain.then(fn, fn)
+  mutateChain = next.then(
+    () => undefined,
+    () => undefined,
+  )
+  return next
+}
+
 export const useBoardStore = defineStore('board', {
   state: () => ({
     loading: false,
@@ -160,6 +172,10 @@ export const useBoardStore = defineStore('board', {
     cursorSeq: (state) => state.board?.cursor ?? 0,
     activePlayers: (state) => state.board?.players ?? [],
     canAddPlayer: (state) => (state.board?.players?.length ?? 0) < 4,
+    canRedo: (state) => {
+      const cursor = state.board?.cursor ?? 0
+      return (state.board?.history ?? []).some((e) => !e.isDeleted && e.seq > cursor)
+    },
     scoresByPlayerId(): Record<string, number> {
       const scores: Record<string, number> = {}
       for (const p of this.activePlayers) scores[p.id] = p.score ?? 0
@@ -191,70 +207,82 @@ export const useBoardStore = defineStore('board', {
         this.board = { cursor: 0, players: [], history: [] }
         return
       }
-      const baseUrl = getApiBaseUrl()
-      this.loading = true
-      this.error = null
+      if (refreshInFlight) return refreshInFlight
+      refreshInFlight = (async () => {
+        const baseUrl = getApiBaseUrl()
+        this.loading = true
+        this.error = null
+        try {
+          const res = await http<{ board: BoardPayload | null }>('/me', { baseUrl, token: auth.token })
+          this.board = normalizeBoard(res.board)
+        } catch (e) {
+          const err = e as HttpError
+          if (err?.status === 401) auth.logout()
+          this.error = 'Không tải được dữ liệu.'
+        } finally {
+          this.loading = false
+        }
+      })()
       try {
-        const res = await http<{ board: BoardPayload | null }>('/me', { baseUrl, token: auth.token })
-        this.board = normalizeBoard(res.board)
-      } catch (e) {
-        const err = e as HttpError
-        if (err?.status === 401) auth.logout()
-        this.error = 'Không tải được dữ liệu.'
+        await refreshInFlight
       } finally {
-        this.loading = false
+        refreshInFlight = null
       }
     },
     async addPlayer() {
-      const auth = useAuthStore()
-      if (!auth.token || !this.canAddPlayer) return
-      const baseUrl = getApiBaseUrl()
-      type DbPlayer = {
-        id: string
-        name: string
-        sort_order: number
-        color_key: PlayerColorKey
-        avatar_url: string | null
-        deleted_at: string | null
-      }
-      const res = await http<{ player: DbPlayer }>('/players', { baseUrl, token: auth.token, method: 'POST' })
-      if (!res.player || res.player.deleted_at) return
-      this.ensureBoard()
-      const next: Player = {
-        id: res.player.id,
-        name: res.player.name,
-        sortOrder: res.player.sort_order,
-        colorKey: res.player.color_key,
-        avatarUrl: res.player.avatar_url,
-        score: 0,
-      }
-      this.board!.players = this.board!.players
-        .concat(next)
-        .slice()
-        .sort((a, b) => a.sortOrder - b.sortOrder)
+      return enqueue(async () => {
+        const auth = useAuthStore()
+        if (!auth.token || !this.canAddPlayer) return
+        const baseUrl = getApiBaseUrl()
+        type DbPlayer = {
+          id: string
+          name: string
+          sort_order: number
+          color_key: PlayerColorKey
+          avatar_url: string | null
+          deleted_at: string | null
+        }
+        const res = await http<{ player: DbPlayer }>('/players', { baseUrl, token: auth.token, method: 'POST' })
+        if (!res.player || res.player.deleted_at) return
+        this.ensureBoard()
+        const next: Player = {
+          id: res.player.id,
+          name: res.player.name,
+          sortOrder: res.player.sort_order,
+          colorKey: res.player.color_key,
+          avatarUrl: res.player.avatar_url,
+          score: 0,
+        }
+        this.board!.players = this.board!.players
+          .concat(next)
+          .slice()
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+      })
     },
     async patchPlayer(
       playerId: string,
       patch: { name?: string; colorKey?: PlayerColorKey; avatarUrl?: string | null },
     ) {
-      const auth = useAuthStore()
-      if (!auth.token) return
-      const baseUrl = getApiBaseUrl()
-      this.ensureBoard()
-      const before = this.board!.players.find((p) => p.id === playerId) ?? null
-      if (before) {
-        const optimistic: Partial<Player> = {}
-        if (patch.name !== undefined) optimistic.name = patch.name
-        if (patch.colorKey !== undefined) optimistic.colorKey = patch.colorKey
-        if (patch.avatarUrl !== undefined) optimistic.avatarUrl = patch.avatarUrl
-        this.updateLocalPlayer(playerId, optimistic)
-      }
-      try {
-        await http(`/players/${playerId}`, { baseUrl, token: auth.token, method: 'PATCH', body: patch })
-      } catch (e) {
-        if (before) this.updateLocalPlayer(playerId, before)
-        throw e
-      }
+      return enqueue(async () => {
+        const auth = useAuthStore()
+        if (!auth.token) return
+        const baseUrl = getApiBaseUrl()
+        this.ensureBoard()
+        const before = this.board!.players.find((p) => p.id === playerId) ?? null
+        if (before) {
+          const optimistic: Partial<Player> = {}
+          if (patch.name !== undefined) optimistic.name = patch.name
+          if (patch.colorKey !== undefined) optimistic.colorKey = patch.colorKey
+          if (patch.avatarUrl !== undefined) optimistic.avatarUrl = patch.avatarUrl
+          this.updateLocalPlayer(playerId, optimistic)
+        }
+        try {
+          await http(`/players/${playerId}`, { baseUrl, token: auth.token, method: 'PATCH', body: patch })
+        } catch (e) {
+          if (before) this.updateLocalPlayer(playerId, before)
+          throw e
+        }
+      })
     },
     async renamePlayer(playerId: string, name: string) {
       const n = name.trim()
@@ -272,41 +300,57 @@ export const useBoardStore = defineStore('board', {
       this.updateLocalPlayer(playerId, { avatarUrl })
     },
     async deletePlayer(playerId: string) {
-      const auth = useAuthStore()
-      if (!auth.token) return
-      const baseUrl = getApiBaseUrl()
-      const res = await http<{ board: BoardPayload | null }>(`/players/${playerId}`, {
-        baseUrl,
-        token: auth.token,
-        method: 'DELETE',
+      return enqueue(async () => {
+        const auth = useAuthStore()
+        if (!auth.token) return
+        const baseUrl = getApiBaseUrl()
+        const res = await http<{ board: BoardPayload | null }>(`/players/${playerId}`, {
+          baseUrl,
+          token: auth.token,
+          method: 'DELETE',
+        })
+        this.board = normalizeBoard(res.board)
       })
-      this.board = normalizeBoard(res.board)
     },
     async applyEvent(actorPlayerId: string, targetPlayerId: string, ball: Ball) {
-      const auth = useAuthStore()
-      if (!auth.token) return
-      const baseUrl = getApiBaseUrl()
-      const res = await http<{ board: BoardPayload | null }>('/events', {
-        baseUrl,
-        token: auth.token,
-        method: 'POST',
-        body: { actorPlayerId, targetPlayerId, ball },
+      return enqueue(async () => {
+        const auth = useAuthStore()
+        if (!auth.token) return
+        const baseUrl = getApiBaseUrl()
+        const res = await http<{ board: BoardPayload | null }>('/events', {
+          baseUrl,
+          token: auth.token,
+          method: 'POST',
+          body: { actorPlayerId, targetPlayerId, ball },
+        })
+        this.board = normalizeBoard(res.board)
       })
-      this.board = normalizeBoard(res.board)
     },
     async undo() {
-      const auth = useAuthStore()
-      if (!auth.token) return
-      const baseUrl = getApiBaseUrl()
-      const res = await http<{ board: BoardPayload | null }>('/undo', { baseUrl, token: auth.token, method: 'POST' })
-      this.board = normalizeBoard(res.board)
+      return enqueue(async () => {
+        const auth = useAuthStore()
+        if (!auth.token) return
+        const baseUrl = getApiBaseUrl()
+        const res = await http<{ board: BoardPayload | null }>('/undo', {
+          baseUrl,
+          token: auth.token,
+          method: 'POST',
+        })
+        this.board = normalizeBoard(res.board)
+      })
     },
     async redo() {
-      const auth = useAuthStore()
-      if (!auth.token) return
-      const baseUrl = getApiBaseUrl()
-      const res = await http<{ board: BoardPayload | null }>('/redo', { baseUrl, token: auth.token, method: 'POST' })
-      this.board = normalizeBoard(res.board)
+      return enqueue(async () => {
+        const auth = useAuthStore()
+        if (!auth.token) return
+        const baseUrl = getApiBaseUrl()
+        const res = await http<{ board: BoardPayload | null }>('/redo', {
+          baseUrl,
+          token: auth.token,
+          method: 'POST',
+        })
+        this.board = normalizeBoard(res.board)
+      })
     },
   },
 })

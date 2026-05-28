@@ -3,8 +3,10 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { HttpError } from '../api/http'
 import { useAuthStore } from '../stores/auth'
+import { useBoardStore } from '../stores/board'
 
 const auth = useAuthStore()
+const board = useBoardStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -26,6 +28,9 @@ async function onSubmit() {
     if (mode.value === 'login') await auth.login(u, p)
     else await auth.register(u, p)
     const next = typeof route.query.next === 'string' ? route.query.next : '/'
+    if (next === '/') void import('./ScoreboardPage.vue')
+    void import('./RandomPage.vue')
+    void board.refresh()
     router.replace(next)
   } catch (e) {
     const err = e as Partial<HttpError> & { message?: string }
@@ -37,6 +42,11 @@ async function onSubmit() {
       errorText.value = 'Password tối thiểu 6 ký tự.'
     } else if (code === 'supabase_not_configured') {
       errorText.value = 'Backend chưa cấu hình SUPABASE_URL/SUPABASE_ANON_KEY.'
+    } else if (
+      typeof code === 'string' &&
+      (code.toLowerCase().includes('invalid login') || code.toLowerCase().includes('invalid credentials'))
+    ) {
+      errorText.value = 'Sai username hoặc password.'
     } else if (typeof code === 'string' && code.length) {
       errorText.value = code
     } else {
@@ -63,7 +73,6 @@ async function onSubmit() {
           inputmode="text"
           autocomplete="username"
           class="h-12 rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 text-base outline-none ring-0 placeholder:text-zinc-600 focus:border-zinc-600"
-          placeholder="ví dụ: ban_den_team"
         />
       </label>
 
@@ -99,9 +108,7 @@ async function onSubmit() {
         {{ mode === 'login' ? 'Chưa có tài khoản? Tạo mới' : 'Đã có tài khoản? Đăng nhập' }}
       </button>
 
-      <div class="mt-auto pt-6 text-center text-xs text-zinc-500">
-        Bằng việc đăng nhập, bạn đồng ý lưu dữ liệu tính điểm theo tài khoản.
-      </div>
+      <div class="mt-auto pt-6" />
     </form>
   </div>
 </template>

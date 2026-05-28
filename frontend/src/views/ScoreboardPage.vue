@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomSheet from '../components/BottomSheet.vue'
 import HeaderBar from '../components/HeaderBar.vue'
@@ -19,14 +19,14 @@ const scoreOpen = ref(false)
 const actorPlayerId = ref<string | null>(null)
 
 const canUndo = computed(() => board.cursorSeq > 0)
-const canRedo = computed(() => board.history.some((e) => !e.isDeleted && e.seq > board.cursorSeq))
+const canRedo = computed(() => board.canRedo)
 const canAdd = computed(() => board.canAddPlayer)
 
 const playersSorted = computed(() => board.activePlayers.slice().sort((a, b) => a.sortOrder - b.sortOrder))
 
-onMounted(() => {
-  board.refresh()
-})
+if (!board.board) void board.refresh()
+
+const initialLoading = computed(() => !board.board && board.loading)
 
 function openScore(playerId: string) {
   actorPlayerId.value = playerId
@@ -77,17 +77,23 @@ function goEditPlayer(playerId: string) {
 
     <div class="flex min-h-0 flex-1 flex-col px-4 pt-3">
 
-      <div v-if="playersSorted.length === 0" class="rounded-3xl border border-zinc-800 bg-zinc-900/30 p-5">
-        <div class="text-base font-semibold text-zinc-100">Chưa có người chơi</div>
-        <div class="mt-1 text-sm text-zinc-400">
-          Nhấn nút + để thêm tối đa 4 người. Mặc định tên sẽ là “chó ngu 1..4”.
+      <div v-if="initialLoading" class="flex flex-1 items-center justify-center">
+        <div class="w-full rounded-3xl border border-zinc-800 bg-zinc-900/30 p-6 text-center">
+          <div class="mx-auto h-10 w-10 animate-spin rounded-full border-[3px] border-zinc-700 border-t-violet-500" />
+          <div class="mt-3 text-sm font-semibold text-zinc-200">Đang tải dữ liệu…</div>
         </div>
-        <button
-          class="mt-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-violet-500 text-base font-semibold text-zinc-950 active:bg-violet-400"
-          @click="board.addPlayer()"
-        >
-          Thêm người chơi
-        </button>
+      </div>
+
+      <div v-else-if="playersSorted.length === 0" class="flex flex-1 items-center justify-center">
+        <div class="w-full rounded-3xl border border-zinc-800 bg-zinc-900/30 p-5 text-center">
+          <div class="text-base font-semibold text-zinc-100">Chưa có người chơi</div>
+          <button
+            class="mt-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-violet-500 text-base font-semibold text-zinc-950 active:bg-violet-400"
+            @click="board.addPlayer()"
+          >
+            Thêm người chơi
+          </button>
+        </div>
       </div>
 
       <div v-else class="flex min-h-0 flex-1 flex-col items-stretch justify-center gap-2 pb-3">

@@ -176,7 +176,6 @@ function scheduleDraw() {
 }
 
 watch(poolPlayers, scheduleDraw)
-watch(rotation, scheduleDraw)
 
 watch(
   poolPlayers,
@@ -287,7 +286,7 @@ const pickedColor = computed(() => {
     <div class="flex-1 px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-4">
       <div class="mb-4 flex items-center justify-end">
         <button class="text-xs font-semibold text-zinc-400 active:text-zinc-200" @click="resetPool">
-          Reset pool
+          Đặt lại
         </button>
       </div>
 
@@ -372,7 +371,7 @@ const pickedColor = computed(() => {
           class="h-12 rounded-2xl bg-violet-500 text-sm font-semibold text-zinc-950 active:bg-violet-400"
           @click="keepAndRemove"
         >
-          Giữ (xóa khỏi pool)
+          Xóa
         </button>
       </div>
     </BottomSheet>
