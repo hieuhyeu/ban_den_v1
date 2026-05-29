@@ -15,6 +15,21 @@ body {
   min-height: 100svh;
 }
 
+.history-stripes::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(244, 244, 245, 0.07) 0px,
+    rgba(244, 244, 245, 0.07) 8px,
+    rgba(9, 9, 11, 0) 8px,
+    rgba(9, 9, 11, 0) 16px
+  );
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 140ms ease;

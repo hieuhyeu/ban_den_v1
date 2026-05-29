@@ -133,11 +133,12 @@ function goEditPlayer(playerId: string) {
     </BottomSheet>
 
     <BottomSheet v-model="historyOpen" title="Lịch sử">
-      <HistorySheet :history="board.history" :players="board.activePlayers" />
+      <HistorySheet :history="board.history" :players="board.activePlayers" :cursor="board.cursorSeq" />
     </BottomSheet>
 
     <BottomSheet v-model="scoreOpen" title="Ghi điểm">
       <ScoreSheet
+        :open="scoreOpen"
         :actor-player-id="actorPlayerId"
         :players="board.activePlayers"
         :scores-by-player-id="board.scoresByPlayerId"

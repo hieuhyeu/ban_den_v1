@@ -6,6 +6,7 @@ import ball6Url from '../assets/balls_images/RBABK_06.webp'
 import ball9Url from '../assets/balls_images/RBABK_09.webp'
 
 const props = defineProps<{
+  open: boolean
   actorPlayerId: string | null
   players: Player[]
   scoresByPlayerId: Record<string, number>
@@ -17,14 +18,40 @@ const emit = defineEmits<{
 
 const ball = ref<Ball | null>(null)
 const targetPlayerId = ref<string | null>(null)
+const submitted = ref(false)
+
+function resetPick() {
+  ball.value = null
+  targetPlayerId.value = null
+  submitted.value = false
+}
+
+function tryAutoConfirm() {
+  if (!props.actorPlayerId || !ball.value || !targetPlayerId.value) return
+  if (submitted.value) return
+  submitted.value = true
+  emit('confirm', props.actorPlayerId, targetPlayerId.value, ball.value)
+  ball.value = null
+  targetPlayerId.value = null
+}
 
 watch(
   () => props.actorPlayerId,
   () => {
-    ball.value = null
-    targetPlayerId.value = null
+    resetPick()
   },
 )
+
+watch(
+  () => props.open,
+  (v) => {
+    if (v) resetPick()
+  },
+)
+
+watch([ball, targetPlayerId], () => {
+  tryAutoConfirm()
+})
 
 const actor = computed(() => props.players.find((p) => p.id === props.actorPlayerId) ?? null)
 
@@ -32,13 +59,6 @@ const targets = computed(() => {
   const actorId = props.actorPlayerId
   return props.players.filter((p) => p.id !== actorId)
 })
-
-const canConfirm = computed(() => Boolean(props.actorPlayerId && ball.value && targetPlayerId.value))
-
-function onConfirm() {
-  if (!props.actorPlayerId || !ball.value || !targetPlayerId.value) return
-  emit('confirm', props.actorPlayerId, targetPlayerId.value, ball.value)
-}
 
 const BALL_IMAGE: Record<Ball, string> = {
   3: ball3Url,
@@ -69,7 +89,7 @@ function initialOf(name: string) {
           :key="b"
           class="flex h-16 touch-manipulation items-center justify-between gap-3 rounded-2xl border-2 border-zinc-800 bg-zinc-900/40 px-3 text-left text-sm font-semibold text-zinc-100 transition-colors active:bg-zinc-800 active:scale-[0.98]"
           :class="ball === b ? 'border-violet-400 bg-violet-500/15 ring-2 ring-violet-400/30' : ''"
-          @click="ball = b"
+          @click="ball = b; tryAutoConfirm()"
         >
           <div class="min-w-0 flex-1">
             <div class="text-xs font-black tracking-widest text-zinc-400">BI</div>
@@ -90,7 +110,7 @@ function initialOf(name: string) {
           :key="p.id"
           class="flex touch-manipulation items-center justify-between gap-3 rounded-2xl border-2 border-zinc-800 bg-zinc-900/40 px-4 py-3 text-left transition-colors active:bg-zinc-800 active:scale-[0.99]"
           :class="targetPlayerId === p.id ? 'border-violet-400 bg-violet-500/15 ring-2 ring-violet-400/30' : ''"
-          @click="targetPlayerId = p.id"
+          @click="targetPlayerId = p.id; tryAutoConfirm()"
         >
           <div class="flex min-w-0 flex-1 items-center gap-3">
             <div class="h-10 w-10 overflow-hidden rounded-full border border-zinc-800 bg-zinc-950/40">
@@ -113,12 +133,6 @@ function initialOf(name: string) {
       </div>
     </div>
 
-    <button
-      class="mt-1 inline-flex h-12 touch-manipulation items-center justify-center rounded-2xl bg-violet-500 px-4 text-base font-semibold text-zinc-950 transition-colors active:bg-violet-400 active:scale-[0.98] disabled:opacity-40"
-      :disabled="!canConfirm"
-      @click="onConfirm"
-    >
-      Xác nhận
-    </button>
+    <div class="h-1" />
   </div>
 </template>

@@ -9,6 +9,7 @@ import ball9Url from '../assets/balls_images/RBABK_09.webp'
 const props = defineProps<{
   history: Array<ScoreEvent & { applied: boolean }>
   players: Player[]
+  cursor: number
 }>()
 
 const BALL_IMAGE: Record<3 | 6 | 9, string> = {
@@ -35,6 +36,8 @@ const playerById = computed(() => {
 })
 
 const reversedHistory = computed(() => props.history.slice().reverse())
+const newestSeq = computed(() => props.history.reduce((m, e) => (e.seq > m ? e.seq : m), 0))
+const undoMarkerSeq = computed(() => props.cursor + 1)
 
 function formatTime(ts: number) {
   const d = new Date(ts)
@@ -51,8 +54,13 @@ function formatTime(ts: number) {
     <div
       v-for="e in reversedHistory"
       :key="e.seq"
-      class="rounded-3xl border border-zinc-800 bg-zinc-900/40 px-4 py-3"
-      :class="e.isDeleted ? 'opacity-25' : e.applied ? '' : 'opacity-50'"
+      class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/40 px-4 py-3"
+      :class="[
+        e.isDeleted ? 'opacity-25' : e.applied ? '' : 'opacity-50',
+        !e.isDeleted && !e.applied ? 'history-stripes' : '',
+        e.seq === newestSeq ? 'border-violet-400/35 ring-2 ring-violet-400/20' : '',
+        e.seq === undoMarkerSeq ? 'border-amber-300/35 ring-2 ring-amber-300/15' : '',
+      ]"
     >
       <div class="flex items-center justify-between gap-3">
         <div class="text-xs font-semibold text-zinc-500">#{{ e.seq }} · {{ formatTime(e.createdAt) }}</div>
