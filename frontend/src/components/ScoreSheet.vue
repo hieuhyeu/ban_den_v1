@@ -91,11 +91,11 @@ function initialOf(name: string) {
           v-for="b in ([3, 6, 9] as Ball[])"
           :key="b"
           class="relative flex h-20 w-20 touch-manipulation items-center justify-center rounded-full border-2 bg-zinc-900/40 p-[5px] transition-colors active:bg-zinc-800 active:scale-[0.98]"
-          :class="selectedBalls.includes(b) ? 'border-zinc-400/70' : 'border-transparent'"
+          :class="selectedBalls.includes(b) ? 'border-zinc-100/80' : 'border-transparent'"
           :aria-pressed="selectedBalls.includes(b)"
           @click="toggleBall(b)"
         >
-          <div class="h-full w-full overflow-hidden rounded-full">
+          <div class="h-full w-full overflow-hidden rounded-full bg-zinc-950/40">
             <img :src="BALL_IMAGE[b]" alt="" class="h-full w-full object-cover" loading="lazy" />
           </div>
         </button>

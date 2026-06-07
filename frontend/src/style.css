@@ -30,6 +30,15 @@ body {
   pointer-events: none;
 }
 
+.history-highlight-current {
+  border-color: rgba(244, 244, 245, 0.85) !important;
+  background-color: rgba(244, 244, 245, 0.06) !important;
+  box-shadow:
+    0 0 0 2px rgba(244, 244, 245, 0.22),
+    0 0 0 6px rgba(244, 244, 245, 0.08),
+    0 16px 36px rgba(244, 244, 245, 0.06);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 140ms ease;

@@ -137,7 +137,7 @@ function goEditPlayer(playerId: string) {
       <HistorySheet :history="board.history" :players="board.activePlayers" :cursor="board.cursorSeq" />
     </BottomSheet>
 
-    <BottomSheet v-model="scoreOpen" title="Ghi điểm" :scroll="false">
+    <BottomSheet v-model="scoreOpen" title="Ghi điểm">
       <ScoreSheet
         :open="scoreOpen"
         :actor-player-id="actorPlayerId"

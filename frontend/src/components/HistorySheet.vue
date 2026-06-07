@@ -36,8 +36,6 @@ const playerById = computed(() => {
 })
 
 const reversedHistory = computed(() => props.history.slice().reverse())
-const newestSeq = computed(() => props.history.reduce((m, e) => (e.seq > m ? e.seq : m), 0))
-const undoMarkerSeq = computed(() => props.cursor + 1)
 
 function formatTime(ts: number) {
   const d = new Date(ts)
@@ -46,92 +44,95 @@ function formatTime(ts: number) {
 </script>
 
 <template>
-  <div v-if="history.length === 0" class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-400">
-    Chưa có lịch sử.
-  </div>
-
-  <div v-else class="flex flex-col gap-2">
+  <div class="pt-2.5">
     <div
-      v-for="e in reversedHistory"
-      :key="e.seq"
-      class="relative overflow-hidden rounded-3xl border border-zinc-700/70 bg-zinc-900/40 px-4 py-3"
-      :class="[
-        e.isDeleted ? 'opacity-25' : e.applied ? '' : 'opacity-50',
-        !e.isDeleted && !e.applied ? 'history-stripes' : '',
-        e.seq === newestSeq ? 'border-violet-300/40 ring-2 ring-violet-300/15' : '',
-        !e.isDeleted && !e.applied ? 'border-amber-300/35' : '',
-        e.seq === undoMarkerSeq ? 'border-amber-200/60 ring-2 ring-amber-200/15' : '',
-      ]"
+      v-if="history.length === 0"
+      class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 text-sm text-zinc-400"
     >
-      <div class="flex items-center justify-between gap-3">
-        <div class="text-xs font-semibold text-zinc-500">#{{ e.seq }} · {{ formatTime(e.createdAt) }}</div>
-        <div class="flex items-center gap-2">
-          <div
-            v-if="e.isDeleted"
-            class="rounded-full border border-zinc-700 bg-zinc-950/40 px-2 py-1 text-[10px] font-black tracking-widest text-zinc-400"
-          >
-            DELETED
-          </div>
-          <div class="h-8 w-8 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/40">
-            <img :src="BALL_IMAGE[e.ball]" :alt="`Bi ${e.ball}`" class="h-full w-full object-cover" loading="lazy" />
-          </div>
-        </div>
-      </div>
+      Chưa có lịch sử.
+    </div>
 
-      <div class="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-2">
-        <div class="flex min-w-0 items-center gap-2">
-          <div class="h-9 w-9 overflow-hidden rounded-full border border-zinc-800 bg-zinc-950/40">
-            <img
-              v-if="playerById[e.actorPlayerId]?.avatarUrl"
-              :src="playerById[e.actorPlayerId]?.avatarUrl"
-              alt=""
-              class="h-full w-full object-cover"
-            />
-            <div v-else class="flex h-full w-full items-center justify-center text-sm font-black text-zinc-400">
-              {{ initialOf(playerById[e.actorPlayerId]?.name ?? '') }}
+    <div v-else class="mt-2.5 flex flex-col gap-2">
+      <div
+        v-for="e in reversedHistory"
+        :key="e.seq"
+        class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/40 px-4 py-3"
+        :class="[
+          e.isDeleted ? 'opacity-25' : e.applied ? '' : 'opacity-50',
+          !e.isDeleted && !e.applied ? 'history-stripes' : '',
+          !e.isDeleted && props.cursor > 0 && e.seq === props.cursor ? 'history-highlight-current' : '',
+        ]"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-xs font-semibold text-zinc-500">#{{ e.seq }} · {{ formatTime(e.createdAt) }}</div>
+          <div class="flex items-center gap-2">
+            <div
+              v-if="e.isDeleted"
+              class="rounded-full border border-zinc-700 bg-zinc-950/40 px-2 py-1 text-[10px] font-black tracking-widest text-zinc-400"
+            >
+              DELETED
             </div>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: playerById[e.actorPlayerId]?.colorHex }" />
-              <div class="truncate text-sm font-semibold text-zinc-100">
-                {{ playerById[e.actorPlayerId]?.name ?? 'Unknown' }}
-              </div>
+            <div class="h-8 w-8 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/40">
+              <img :src="BALL_IMAGE[e.ball]" :alt="`Bi ${e.ball}`" class="h-full w-full object-cover" loading="lazy" />
             </div>
-            <div class="mt-0.5 text-[11px] font-semibold text-zinc-500">Ăn bi</div>
-          </div>
-        </div>
-        <div class="flex items-center justify-end">
-          <div class="rounded-full bg-emerald-500/15 px-3 py-1 text-sm font-extrabold tabular-nums text-emerald-200">
-            +{{ e.value }}
           </div>
         </div>
 
-        <div class="flex min-w-0 items-center gap-2">
-          <div class="h-9 w-9 overflow-hidden rounded-full border border-zinc-800 bg-zinc-950/40">
-            <img
-              v-if="playerById[e.targetPlayerId]?.avatarUrl"
-              :src="playerById[e.targetPlayerId]?.avatarUrl"
-              alt=""
-              class="h-full w-full object-cover"
-            />
-            <div v-else class="flex h-full w-full items-center justify-center text-sm font-black text-zinc-400">
-              {{ initialOf(playerById[e.targetPlayerId]?.name ?? '') }}
-            </div>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: playerById[e.targetPlayerId]?.colorHex }" />
-              <div class="truncate text-sm font-semibold text-zinc-100">
-                {{ playerById[e.targetPlayerId]?.name ?? 'Unknown' }}
+        <div class="mt-2.5 grid grid-cols-[1fr_auto] gap-x-3 gap-y-2">
+          <div class="flex min-w-0 items-center gap-2">
+            <div class="h-9 w-9 overflow-hidden rounded-full border border-zinc-800 bg-zinc-950/40">
+              <img
+                v-if="playerById[e.actorPlayerId]?.avatarUrl"
+                :src="playerById[e.actorPlayerId]?.avatarUrl"
+                alt=""
+                class="h-full w-full object-cover"
+              />
+              <div v-else class="flex h-full w-full items-center justify-center text-sm font-black text-zinc-400">
+                {{ initialOf(playerById[e.actorPlayerId]?.name ?? '') }}
               </div>
             </div>
-            <div class="mt-0.5 text-[11px] font-semibold text-zinc-500">Bị trừ</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: playerById[e.actorPlayerId]?.colorHex }" />
+                <div class="truncate text-sm font-semibold text-zinc-100">
+                  {{ playerById[e.actorPlayerId]?.name ?? 'Unknown' }}
+                </div>
+              </div>
+              <div class="mt-0.5 text-[11px] font-semibold text-zinc-500">Ăn bi</div>
+            </div>
           </div>
-        </div>
-        <div class="flex items-center justify-end">
-          <div class="rounded-full bg-rose-500/15 px-3 py-1 text-sm font-extrabold tabular-nums text-rose-200">
-            -{{ e.value }}
+          <div class="flex items-center justify-end">
+            <div class="rounded-full bg-emerald-500/15 px-3 py-1 text-sm font-extrabold tabular-nums text-emerald-200">
+              +{{ e.value }}
+            </div>
+          </div>
+
+          <div class="flex min-w-0 items-center gap-2">
+            <div class="h-9 w-9 overflow-hidden rounded-full border border-zinc-800 bg-zinc-950/40">
+              <img
+                v-if="playerById[e.targetPlayerId]?.avatarUrl"
+                :src="playerById[e.targetPlayerId]?.avatarUrl"
+                alt=""
+                class="h-full w-full object-cover"
+              />
+              <div v-else class="flex h-full w-full items-center justify-center text-sm font-black text-zinc-400">
+                {{ initialOf(playerById[e.targetPlayerId]?.name ?? '') }}
+              </div>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: playerById[e.targetPlayerId]?.colorHex }" />
+                <div class="truncate text-sm font-semibold text-zinc-100">
+                  {{ playerById[e.targetPlayerId]?.name ?? 'Unknown' }}
+                </div>
+              </div>
+              <div class="mt-0.5 text-[11px] font-semibold text-zinc-500">Bị trừ</div>
+            </div>
+          </div>
+          <div class="flex items-center justify-end">
+            <div class="rounded-full bg-rose-500/15 px-3 py-1 text-sm font-extrabold tabular-nums text-rose-200">
+              -{{ e.value }}
+            </div>
           </div>
         </div>
       </div>
