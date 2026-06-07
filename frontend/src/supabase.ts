@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 let cachedToken: string | null = null
-let cachedClient: ReturnType<typeof createClient> | null = null
+let cachedClient: ReturnType<typeof createClient<any>> | null = null
 
 export function createSupabaseClient(token?: string | null) {
   const url = import.meta.env.VITE_SUPABASE_URL as string
@@ -12,7 +12,7 @@ export function createSupabaseClient(token?: string | null) {
   cachedToken = t
   const headers: Record<string, string> = { apikey: anonKey }
   if (t) headers.Authorization = `Bearer ${t}`
-  cachedClient = createClient(url, anonKey, {
+  cachedClient = createClient<any>(url, anonKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

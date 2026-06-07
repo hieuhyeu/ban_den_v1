@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import { http } from '../api/http'
-import { getApiBaseUrl } from '../api/config'
+import { createSupabaseClient } from '../supabase'
 
 type AuthState = {
   token: string | null
@@ -11,6 +10,20 @@ type AuthState = {
 const LS_TOKEN = 'ban_den_token'
 const LS_USERNAME = 'ban_den_username'
 const LS_USER_ID = 'ban_den_user_id'
+
+const USERNAME_RE = /^[a-zA-Z0-9._-]{3,24}$/
+
+function normalizeUsername(input: string) {
+  return input.trim().toLowerCase()
+}
+
+function isValidUsername(username: string) {
+  return USERNAME_RE.test(username)
+}
+
+function usernameToEmail(username: string) {
+  return `${username}@ban-den.local`
+}
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
@@ -23,30 +36,50 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     async login(username: string, password: string) {
-      const baseUrl = getApiBaseUrl()
-      const res = await http<{ session: { access_token: string } | null; user: { id: string } | null }>(
-        '/auth/login',
-        {
-          baseUrl,
-          method: 'POST',
-          body: { username, password },
-        },
-      )
-      if (!res.session?.access_token || !res.user?.id) throw new Error('login_failed')
-      this.setSession(username, res.user.id, res.session.access_token)
+      const u = normalizeUsername(username)
+      if (!isValidUsername(u)) throw new Error('invalid_username')
+      if (!password || password.length < 6) throw new Error('invalid_password')
+
+      const supabase = createSupabaseClient()
+      const email = usernameToEmail(u)
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        const msg = (error.message ?? '').toLowerCase()
+        if (msg.includes('invalid login') || msg.includes('invalid credentials')) throw new Error('invalid_credentials')
+        throw new Error(error.message || 'login_failed')
+      }
+      const token = data.session?.access_token ?? null
+      const userId = data.user?.id ?? null
+      if (!token || !userId) throw new Error('login_failed')
+      this.setSession(u, userId, token)
     },
     async register(username: string, password: string) {
-      const baseUrl = getApiBaseUrl()
-      const res = await http<{ session: { access_token: string } | null; user: { id: string } | null }>(
-        '/auth/register',
-        {
-          baseUrl,
-          method: 'POST',
-          body: { username, password },
-        },
-      )
-      if (!res.session?.access_token || !res.user?.id) throw new Error('register_failed')
-      this.setSession(username, res.user.id, res.session.access_token)
+      const u = normalizeUsername(username)
+      if (!isValidUsername(u)) throw new Error('invalid_username')
+      if (!password || password.length < 6) throw new Error('invalid_password')
+
+      const supabase = createSupabaseClient()
+      const email = usernameToEmail(u)
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username: u } },
+      })
+      if (error) throw new Error(error.message || 'register_failed')
+
+      const token = data.session?.access_token ?? null
+      const userId = data.user?.id ?? null
+      if (token && userId) {
+        this.setSession(u, userId, token)
+        return
+      }
+
+      const signInRes = await supabase.auth.signInWithPassword({ email, password })
+      if (signInRes.error) throw new Error('confirm_email_required')
+      const token2 = signInRes.data.session?.access_token ?? null
+      const userId2 = signInRes.data.user?.id ?? null
+      if (!token2 || !userId2) throw new Error('register_failed')
+      this.setSession(u, userId2, token2)
     },
     setSession(username: string, userId: string, token: string) {
       this.token = token

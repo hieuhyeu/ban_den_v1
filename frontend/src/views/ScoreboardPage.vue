@@ -24,6 +24,7 @@ const canAdd = computed(() => board.canAddPlayer)
 
 const playersSorted = computed(() => board.activePlayers.slice().sort((a, b) => a.sortOrder - b.sortOrder))
 
+if (!board.board) board.hydrateFromCache()
 if (!board.board) void board.refresh()
 
 const initialLoading = computed(() => !board.board && board.loading)
@@ -33,8 +34,8 @@ function openScore(playerId: string) {
   scoreOpen.value = true
 }
 
-function onConfirmScore(actorId: string, targetId: string, ball: 3 | 6 | 9) {
-  board.applyEvent(actorId, targetId, ball)
+function onConfirmMulti(actorId: string, targetId: string, balls: Array<3 | 6 | 9>) {
+  void board.applyMultiBalls(actorId, targetId, balls)
   scoreOpen.value = false
 }
 
@@ -136,13 +137,13 @@ function goEditPlayer(playerId: string) {
       <HistorySheet :history="board.history" :players="board.activePlayers" :cursor="board.cursorSeq" />
     </BottomSheet>
 
-    <BottomSheet v-model="scoreOpen" title="Ghi điểm">
+    <BottomSheet v-model="scoreOpen" title="Ghi điểm" :scroll="false">
       <ScoreSheet
         :open="scoreOpen"
         :actor-player-id="actorPlayerId"
         :players="board.activePlayers"
         :scores-by-player-id="board.scoresByPlayerId"
-        @confirm="onConfirmScore"
+        @confirmMulti="onConfirmMulti"
       />
     </BottomSheet>
 

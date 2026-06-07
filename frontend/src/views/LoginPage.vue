@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { HttpError } from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import { useBoardStore } from '../stores/board'
 
@@ -33,22 +32,16 @@ async function onSubmit() {
     void board.refresh()
     router.replace(next)
   } catch (e) {
-    const err = e as Partial<HttpError> & { message?: string }
-    const body = err?.body as { error?: string } | null | undefined
-    const code = body?.error ?? null
+    const err = e as { message?: string }
+    const code = err?.message ?? null
     if (code === 'invalid_username') {
       errorText.value = 'Username 3–24 ký tự, chỉ gồm a-z, 0-9 và . _ -'
-    } else if (code === 'invalid_body') {
+    } else if (code === 'invalid_password') {
       errorText.value = 'Password tối thiểu 6 ký tự.'
-    } else if (code === 'supabase_not_configured') {
-      errorText.value = 'Backend chưa cấu hình SUPABASE_URL/SUPABASE_ANON_KEY.'
-    } else if (
-      typeof code === 'string' &&
-      (code.toLowerCase().includes('invalid login') || code.toLowerCase().includes('invalid credentials'))
-    ) {
+    } else if (code === 'confirm_email_required') {
+      errorText.value = 'Tài khoản cần xác thực email trước khi đăng nhập.'
+    } else if (code === 'invalid_credentials') {
       errorText.value = 'Sai username hoặc password.'
-    } else if (typeof code === 'string' && code.length) {
-      errorText.value = code
     } else {
       errorText.value = err?.message ?? 'Không đăng nhập được.'
     }

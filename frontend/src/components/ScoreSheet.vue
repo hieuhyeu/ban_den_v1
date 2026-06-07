@@ -13,26 +13,24 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'confirm', actorPlayerId: string, targetPlayerId: string, ball: Ball): void
+  (e: 'confirmMulti', actorPlayerId: string, targetPlayerId: string, balls: Ball[]): void
 }>()
 
-const ball = ref<Ball | null>(null)
+const selectedBalls = ref<Ball[]>([])
 const targetPlayerId = ref<string | null>(null)
-const submitted = ref(false)
+const busy = ref(false)
 
 function resetPick() {
-  ball.value = null
+  selectedBalls.value = []
   targetPlayerId.value = null
-  submitted.value = false
+  busy.value = false
 }
 
-function tryAutoConfirm() {
-  if (!props.actorPlayerId || !ball.value || !targetPlayerId.value) return
-  if (submitted.value) return
-  submitted.value = true
-  emit('confirm', props.actorPlayerId, targetPlayerId.value, ball.value)
-  ball.value = null
-  targetPlayerId.value = null
+function toggleBall(b: Ball) {
+  if (busy.value) return
+  const cur = selectedBalls.value
+  if (cur.includes(b)) selectedBalls.value = cur.filter((x) => x !== b)
+  else selectedBalls.value = cur.concat(b)
 }
 
 watch(
@@ -49,9 +47,14 @@ watch(
   },
 )
 
-watch([ball, targetPlayerId], () => {
-  tryAutoConfirm()
-})
+function onTargetTap(id: string) {
+  if (busy.value) return
+  if (!props.actorPlayerId) return
+  if (!selectedBalls.value.length) return
+  busy.value = true
+  targetPlayerId.value = id
+  emit('confirmMulti', props.actorPlayerId, id, selectedBalls.value.slice())
+}
 
 const actor = computed(() => props.players.find((p) => p.id === props.actorPlayerId) ?? null)
 
@@ -83,20 +86,17 @@ function initialOf(name: string) {
 
     <div class="flex flex-col gap-2">
       <div class="text-xs font-semibold tracking-wide text-zinc-500">CHỌN BI</div>
-      <div class="grid grid-cols-3 gap-2">
+      <div class="flex items-center justify-between gap-3">
         <button
           v-for="b in ([3, 6, 9] as Ball[])"
           :key="b"
-          class="flex h-16 touch-manipulation items-center justify-between gap-3 rounded-2xl border-2 border-zinc-800 bg-zinc-900/40 px-3 text-left text-sm font-semibold text-zinc-100 transition-colors active:bg-zinc-800 active:scale-[0.98]"
-          :class="ball === b ? 'border-violet-400 bg-violet-500/15 ring-2 ring-violet-400/30' : ''"
-          @click="ball = b; tryAutoConfirm()"
+          class="relative flex h-20 w-20 touch-manipulation items-center justify-center rounded-full border-2 bg-zinc-900/40 p-[5px] transition-colors active:bg-zinc-800 active:scale-[0.98]"
+          :class="selectedBalls.includes(b) ? 'border-zinc-400/70' : 'border-transparent'"
+          :aria-pressed="selectedBalls.includes(b)"
+          @click="toggleBall(b)"
         >
-          <div class="min-w-0 flex-1">
-            <div class="text-xs font-black tracking-widest text-zinc-400">BI</div>
-            <div class="mt-0.5 text-base font-extrabold text-zinc-100">{{ b }}</div>
-          </div>
-          <div class="h-12 w-12 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/40">
-            <img :src="BALL_IMAGE[b]" :alt="`Bi ${b}`" class="h-full w-full object-cover" loading="lazy" />
+          <div class="h-full w-full overflow-hidden rounded-full">
+            <img :src="BALL_IMAGE[b]" alt="" class="h-full w-full object-cover" loading="lazy" />
           </div>
         </button>
       </div>
@@ -109,8 +109,9 @@ function initialOf(name: string) {
           v-for="p in targets"
           :key="p.id"
           class="flex touch-manipulation items-center justify-between gap-3 rounded-2xl border-2 border-zinc-800 bg-zinc-900/40 px-4 py-3 text-left transition-colors active:bg-zinc-800 active:scale-[0.99]"
-          :class="targetPlayerId === p.id ? 'border-violet-400 bg-violet-500/15 ring-2 ring-violet-400/30' : ''"
-          @click="targetPlayerId = p.id; tryAutoConfirm()"
+          :class="targetPlayerId === p.id ? 'border-zinc-100/80' : ''"
+          :disabled="busy"
+          @click="onTargetTap(p.id)"
         >
           <div class="flex min-w-0 flex-1 items-center gap-3">
             <div class="h-10 w-10 overflow-hidden rounded-full border border-zinc-800 bg-zinc-950/40">

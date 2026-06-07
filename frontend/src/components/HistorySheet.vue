@@ -54,12 +54,13 @@ function formatTime(ts: number) {
     <div
       v-for="e in reversedHistory"
       :key="e.seq"
-      class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/40 px-4 py-3"
+      class="relative overflow-hidden rounded-3xl border border-zinc-700/70 bg-zinc-900/40 px-4 py-3"
       :class="[
         e.isDeleted ? 'opacity-25' : e.applied ? '' : 'opacity-50',
         !e.isDeleted && !e.applied ? 'history-stripes' : '',
-        e.seq === newestSeq ? 'border-violet-400/35 ring-2 ring-violet-400/20' : '',
-        e.seq === undoMarkerSeq ? 'border-amber-300/35 ring-2 ring-amber-300/15' : '',
+        e.seq === newestSeq ? 'border-violet-300/40 ring-2 ring-violet-300/15' : '',
+        !e.isDeleted && !e.applied ? 'border-amber-300/35' : '',
+        e.seq === undoMarkerSeq ? 'border-amber-200/60 ring-2 ring-amber-200/15' : '',
       ]"
     >
       <div class="flex items-center justify-between gap-3">
