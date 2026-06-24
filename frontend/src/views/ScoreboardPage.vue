@@ -40,7 +40,7 @@ function onConfirmMulti(actorId: string, targetId: string, balls: Array<3 | 6 | 
 }
 
 function onLogout() {
-  auth.logout()
+  void auth.logout()
   router.replace({ name: 'login' })
 }
 

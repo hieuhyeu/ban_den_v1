@@ -1,36 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
 
-let cachedToken: string | null = null
 let cachedClient: ReturnType<typeof createClient<any>> | null = null
 
-export function createSupabaseClient(token?: string | null) {
+export function createSupabaseClient() {
   const url = import.meta.env.VITE_SUPABASE_URL as string
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
   if (!url || !anonKey) throw new Error('supabase_env_missing')
-  const t = token ?? null
-  if (cachedClient && cachedToken === t) return cachedClient
-  cachedToken = t
-  const headers: Record<string, string> = { apikey: anonKey }
-  if (t) headers.Authorization = `Bearer ${t}`
+  if (cachedClient) return cachedClient
   cachedClient = createClient<any>(url, anonKey, {
     auth: {
-      persistSession: false,
-      autoRefreshToken: false,
+      persistSession: true,
+      autoRefreshToken: true,
       detectSessionInUrl: false,
       storageKey: 'ban-den-auth',
     },
-    global: { headers },
   })
   return cachedClient
 }
 
 export async function uploadAvatar(params: {
-  token: string
   userId: string
   playerId: string
   file: File
 }) {
-  const supabase = createSupabaseClient(params.token)
+  const supabase = createSupabaseClient()
   const ext = params.file.name.split('.').pop()?.toLowerCase() || 'jpg'
   const path = `${params.userId}/${params.playerId}.${ext}`
   const { error } = await supabase.storage.from('avatars').upload(path, params.file, {

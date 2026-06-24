@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { createSupabaseClient } from '../supabase'
+import type { Session } from '@supabase/supabase-js'
 
 type AuthState = {
   token: string | null
   username: string | null
   userId: string | null
+  ready: boolean
 }
 
 const LS_TOKEN = 'ban_den_token'
@@ -25,16 +27,63 @@ function usernameToEmail(username: string) {
   return `${username}@ban-den.local`
 }
 
+function usernameFromSession(session: Session | null) {
+  const metaUsername = session?.user?.user_metadata?.username
+  if (typeof metaUsername === 'string' && metaUsername.trim()) return normalizeUsername(metaUsername)
+  const email = session?.user?.email ?? ''
+  const fallback = email.includes('@') ? email.split('@')[0] : ''
+  return fallback ? normalizeUsername(fallback) : null
+}
+
+let authListenerBound = false
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     token: localStorage.getItem(LS_TOKEN),
     username: localStorage.getItem(LS_USERNAME),
     userId: localStorage.getItem(LS_USER_ID),
+    ready: false,
   }),
   getters: {
-    isAuthed: (state) => Boolean(state.token),
+    isAuthed: (state) => Boolean(state.token && state.userId),
   },
   actions: {
+    applySession(session: Session | null) {
+      if (!session?.access_token || !session.user?.id) {
+        this.clearSession()
+        this.ready = true
+        return
+      }
+      const username = usernameFromSession(session) ?? this.username ?? ''
+      this.token = session.access_token
+      this.userId = session.user.id
+      this.username = username || null
+      localStorage.setItem(LS_TOKEN, session.access_token)
+      localStorage.setItem(LS_USER_ID, session.user.id)
+      if (username) localStorage.setItem(LS_USERNAME, username)
+      else localStorage.removeItem(LS_USERNAME)
+      this.ready = true
+    },
+    clearSession() {
+      this.token = null
+      this.username = null
+      this.userId = null
+      localStorage.removeItem(LS_TOKEN)
+      localStorage.removeItem(LS_USERNAME)
+      localStorage.removeItem(LS_USER_ID)
+    },
+    async initialize() {
+      const supabase = createSupabaseClient()
+      const { data } = await supabase.auth.getSession()
+      this.applySession(data.session)
+      if (!authListenerBound) {
+        supabase.auth.onAuthStateChange((_event, session) => {
+          this.applySession(session)
+        })
+        authListenerBound = true
+      }
+      this.ready = true
+    },
     async login(username: string, password: string) {
       const u = normalizeUsername(username)
       if (!isValidUsername(u)) throw new Error('invalid_username')
@@ -48,10 +97,8 @@ export const useAuthStore = defineStore('auth', {
         if (msg.includes('invalid login') || msg.includes('invalid credentials')) throw new Error('invalid_credentials')
         throw new Error(error.message || 'login_failed')
       }
-      const token = data.session?.access_token ?? null
-      const userId = data.user?.id ?? null
-      if (!token || !userId) throw new Error('login_failed')
-      this.setSession(u, userId, token)
+      if (!data.session?.access_token || !data.user?.id) throw new Error('login_failed')
+      this.applySession(data.session)
     },
     async register(username: string, password: string) {
       const u = normalizeUsername(username)
@@ -67,35 +114,20 @@ export const useAuthStore = defineStore('auth', {
       })
       if (error) throw new Error(error.message || 'register_failed')
 
-      const token = data.session?.access_token ?? null
-      const userId = data.user?.id ?? null
-      if (token && userId) {
-        this.setSession(u, userId, token)
+      if (data.session?.access_token && data.user?.id) {
+        this.applySession(data.session)
         return
       }
 
       const signInRes = await supabase.auth.signInWithPassword({ email, password })
       if (signInRes.error) throw new Error('confirm_email_required')
-      const token2 = signInRes.data.session?.access_token ?? null
-      const userId2 = signInRes.data.user?.id ?? null
-      if (!token2 || !userId2) throw new Error('register_failed')
-      this.setSession(u, userId2, token2)
+      if (!signInRes.data.session?.access_token || !signInRes.data.user?.id) throw new Error('register_failed')
+      this.applySession(signInRes.data.session)
     },
-    setSession(username: string, userId: string, token: string) {
-      this.token = token
-      this.username = username
-      this.userId = userId
-      localStorage.setItem(LS_TOKEN, token)
-      localStorage.setItem(LS_USERNAME, username)
-      localStorage.setItem(LS_USER_ID, userId)
-    },
-    logout() {
-      this.token = null
-      this.username = null
-      this.userId = null
-      localStorage.removeItem(LS_TOKEN)
-      localStorage.removeItem(LS_USERNAME)
-      localStorage.removeItem(LS_USER_ID)
+    async logout() {
+      const supabase = createSupabaseClient()
+      await supabase.auth.signOut()
+      this.clearSession()
     },
   },
 })

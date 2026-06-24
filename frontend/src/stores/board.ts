@@ -535,11 +535,11 @@ export const useBoardStore = defineStore('board', {
         this.loading = true
         this.error = null
         try {
-          const supabase = createSupabaseClient(auth.token)
+          const supabase = createSupabaseClient()
           const { data, error } = await supabase.rpc('get_board_state')
           if (error) {
             const msg = (error.message ?? '').toLowerCase()
-            if (msg.includes('jwt') || msg.includes('token')) auth.logout()
+            if (msg.includes('jwt') || msg.includes('token')) void auth.logout()
             throw error
           }
           const serverBoard = normalizeBoard(data as BoardPayload | null)
@@ -570,7 +570,7 @@ export const useBoardStore = defineStore('board', {
           avatar_url: string | null
           deleted_at: string | null
         }
-        const supabase = createSupabaseClient(auth.token)
+        const supabase = createSupabaseClient()
         const { data, error } = await supabase.rpc('create_player')
         if (error) return
         const player = data as DbPlayer | null
@@ -609,7 +609,7 @@ export const useBoardStore = defineStore('board', {
           this.persistSoon()
         }
         try {
-          const supabase = createSupabaseClient(auth.token)
+          const supabase = createSupabaseClient()
           const dbPatch: Record<string, unknown> = {}
           if (patch.name !== undefined) dbPatch.name = patch.name
           if (patch.colorKey !== undefined) dbPatch.color_key = patch.colorKey
@@ -645,7 +645,7 @@ export const useBoardStore = defineStore('board', {
         if (!auth.token) return
         if (this.pendingActions.length) await this.flushPending()
         if (this.pendingActions.length) return
-        const supabase = createSupabaseClient(auth.token)
+        const supabase = createSupabaseClient()
         const { data, error } = await supabase.rpc('delete_player', { p_player_id: playerId })
         if (error) return
         const serverBoard = normalizeBoard(data as BoardPayload | null)
@@ -755,7 +755,7 @@ export const useBoardStore = defineStore('board', {
         }
         this.syncStatus = 'syncing'
         this.syncError = null
-        const supabase = createSupabaseClient(auth.token)
+        const supabase = createSupabaseClient()
         let serverBoard: Board | null = null
         while (this.pendingActions.length) {
           const action = this.pendingActions[0]!
@@ -780,7 +780,7 @@ export const useBoardStore = defineStore('board', {
           } catch (e) {
             const anyErr = e as { message?: string }
             const msg = (anyErr?.message ?? '').toLowerCase()
-            if (msg.includes('jwt') || msg.includes('token')) auth.logout()
+            if (msg.includes('jwt') || msg.includes('token')) void auth.logout()
             this.syncStatus = typeof navigator !== 'undefined' && navigator && navigator.onLine === false ? 'offline' : 'error'
             this.syncError = 'Không đồng bộ được.'
             return

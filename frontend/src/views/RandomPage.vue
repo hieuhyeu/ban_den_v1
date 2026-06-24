@@ -244,7 +244,7 @@ function resetPool() {
 }
 
 function onLogout() {
-  auth.logout()
+  void auth.logout()
   router.replace({ name: 'login' })
 }
 

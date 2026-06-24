@@ -63,7 +63,7 @@ async function onAvatarPicked(e: Event) {
   input.value = ''
   if (!player.value) return
   if (!file) return
-  if (!auth.token || !auth.userId) return
+  if (!auth.userId) return
   const before = player.value.avatarUrl
   const objectUrl = URL.createObjectURL(file)
   board.setPlayerAvatarLocal(player.value.id, objectUrl)
@@ -71,7 +71,7 @@ async function onAvatarPicked(e: Event) {
   avatarBusy.value = true
   errorText.value = null
   try {
-    const res = await uploadAvatar({ token: auth.token, userId: auth.userId, playerId: player.value.id, file })
+    const res = await uploadAvatar({ userId: auth.userId, playerId: player.value.id, file })
     await board.setPlayerAvatarUrl(player.value.id, res.publicUrl)
   } catch (e) {
     board.setPlayerAvatarLocal(player.value.id, before)
