@@ -18,7 +18,7 @@ const poolIds = ref<string[]>([])
 const resultOpen = ref(false)
 const pickedId = ref<string | null>(null)
 const spinning = ref(false)
-const noop = () => {}
+
 
 function loadPool() {
   const raw = localStorage.getItem(LS_POOL)
@@ -85,7 +85,7 @@ function drawWheel() {
 
   ctx.beginPath()
   ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.fillStyle = 'rgba(9, 9, 11, 0.65)'
+  ctx.fillStyle = '#0a0d0c'
   ctx.fill()
 
   if (n === 0) {
@@ -119,7 +119,7 @@ function drawWheel() {
     ctx.globalAlpha = 1
 
     ctx.lineWidth = Math.max(2, r * 0.03)
-    ctx.strokeStyle = 'rgba(9, 9, 11, 0.85)'
+    ctx.strokeStyle = '#050807'
     ctx.stroke()
 
     const mid = (a0 + a1) / 2
@@ -267,9 +267,9 @@ const pickedColor = computed(() => {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-[100svh] w-full max-w-md flex-col">
+  <div class="mx-auto flex min-h-[100svh] w-full max-w-[430px] flex-col bg-[#050807] bg-grain overflow-hidden">
     <HeaderBar
-      title="Random"
+      title="Vòng Quay Ngẫu Nhiên"
       :can-undo="false"
       :can-redo="false"
       :show-undo="false"
@@ -277,70 +277,73 @@ const pickedColor = computed(() => {
       :show-history="false"
       :show-add="false"
       @menu="menuOpen = true"
-      @undo="noop"
-      @redo="noop"
-      @history="noop"
-      @add="noop"
     />
 
-    <div class="flex-1 px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-4">
-      <div class="mb-4 flex items-center justify-end">
-        <button class="text-xs font-semibold text-zinc-400 active:text-zinc-200" @click="resetPool">
-          Đặt lại
+    <div class="flex-1 px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-4 overflow-y-auto">
+      <div class="mb-4 flex items-center justify-between">
+        <span class="text-[9px] font-black tracking-widest text-zinc-500 uppercase">POOL QUAY</span>
+        <button 
+          class="text-[9px] font-black tracking-widest text-zinc-400 hover:text-zinc-200 active:scale-[0.98] transition-all uppercase" 
+          @click="resetPool"
+        >
+          ĐẶT LẠI POOL
         </button>
       </div>
 
-      <div class="rounded-3xl border-2 border-zinc-800 bg-zinc-900/30 p-5 shadow-[0_14px_0_0_rgba(0,0,0,0.35)]">
-        <div class="text-base font-extrabold tracking-tight text-zinc-100">Vòng xoáy</div>
-        <div class="mt-1 text-sm text-zinc-400">Chạm “Quay” để chọn ngẫu nhiên.</div>
-
-        <div class="relative mx-auto mt-5 w-full max-w-[320px]">
+      <div class="rounded-2xl border border-zinc-900 bg-zinc-950/20 p-5 shadow-sm backdrop-blur-sm">
+        <!-- Pointer Needle -->
+        <div class="relative mx-auto w-full max-w-[280px]">
           <div class="absolute left-1/2 top-[-8px] z-10 -translate-x-1/2">
-            <div class="h-0 w-0 border-x-[10px] border-b-[16px] border-x-transparent border-b-zinc-100 drop-shadow" />
+            <div class="h-0 w-0 border-x-[8px] border-t-[14px] border-x-transparent border-t-zinc-200 drop-shadow-md" />
           </div>
-          <div class="aspect-square w-full rounded-[32px] border-2 border-zinc-800 bg-zinc-950/40 p-3 shadow-[0_14px_0_0_rgba(0,0,0,0.35)]">
-            <canvas ref="canvasEl" class="h-full w-full rounded-[24px]" />
+          <div class="aspect-square w-full rounded-2xl border border-zinc-900 bg-zinc-950/30 p-2.5">
+            <canvas ref="canvasEl" class="h-full w-full rounded-xl" />
           </div>
         </div>
 
-        <div class="mt-4 flex flex-wrap gap-2">
+        <!-- Muted Chip Pools -->
+        <div class="mt-6 flex flex-wrap gap-2 justify-center">
           <div
             v-for="p in poolPlayers"
             :key="p.id"
-            class="rounded-2xl border-2 border-zinc-800 px-3 py-2 text-sm font-black text-zinc-950 saturate-150"
-            :style="{ backgroundColor: PLAYER_COLOR_OPTIONS.find((c) => c.key === p.colorKey)?.hex ?? '#A855F7' }"
+            class="flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all select-none"
+            :style="{ borderColor: hexByKey(p.colorKey) + '44', backgroundColor: hexByKey(p.colorKey) + '15', color: hexByKey(p.colorKey) }"
           >
-            {{ p.name }}
+            <span class="h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: hexByKey(p.colorKey) }" />
+            <span>{{ p.name }}</span>
           </div>
-          <div v-if="poolPlayers.length === 0" class="text-sm text-zinc-500">Pool trống. Reset để quay lại.</div>
+          <div v-if="poolPlayers.length === 0" class="text-xs font-bold text-zinc-500 py-2 uppercase tracking-wide">
+            Pool quay trống. Vui lòng đặt lại.
+          </div>
         </div>
 
         <button
-          class="mt-5 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-violet-500 text-base font-extrabold text-zinc-950 shadow-[0_10px_0_0_rgba(0,0,0,0.25)] active:bg-violet-400 active:scale-[0.99] disabled:opacity-40"
+          class="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-zinc-100 text-xs font-black tracking-widest text-zinc-950 uppercase hover:bg-white active:scale-[0.98] transition-all disabled:opacity-30"
           :disabled="poolPlayers.length === 0 || spinning"
           @click="spin"
         >
-          {{ spinning ? 'Đang quay…' : 'Quay' }}
+          {{ spinning ? 'ĐANG QUAY…' : 'QUAY NGẪU NHIÊN' }}
         </button>
       </div>
     </div>
 
+    <!-- Bottom menu sheet -->
     <BottomSheet v-model="menuOpen" title="Menu">
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2 mt-2">
         <button
-          class="h-12 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 text-left text-sm font-semibold text-zinc-100 active:bg-zinc-800"
+          class="h-11 rounded-xl border border-zinc-900 bg-zinc-900/60 px-4 text-left text-xs font-bold tracking-wider text-zinc-200 hover:bg-zinc-850 active:scale-[0.99] transition-all uppercase"
           @click="goScoreboard"
         >
           Tính điểm
         </button>
         <button
-          class="h-12 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-4 text-left text-sm font-semibold text-zinc-100 active:bg-zinc-800"
+          class="h-11 rounded-xl border border-zinc-900 bg-zinc-900/60 px-4 text-left text-xs font-bold tracking-wider text-zinc-200 hover:bg-zinc-850 active:scale-[0.99] transition-all uppercase"
           @click="goRandom"
         >
           Vòng xoay random
         </button>
         <button
-          class="mt-2 h-12 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 text-left text-sm font-semibold text-rose-200 active:bg-rose-500/20"
+          class="mt-3 h-11 rounded-xl border border-rose-950/30 bg-rose-950/10 px-4 text-left text-xs font-black tracking-widest text-rose-350 hover:bg-rose-950/20 active:scale-[0.99] transition-all uppercase"
           @click="onLogout"
         >
           Đăng xuất
@@ -348,30 +351,36 @@ const pickedColor = computed(() => {
       </div>
     </BottomSheet>
 
-    <BottomSheet v-model="resultOpen" title="Kết quả">
-      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
-        <div class="text-xs font-semibold tracking-wide text-zinc-500">TRÚNG</div>
-        <div
-          class="mt-2 flex items-center justify-between gap-3 rounded-2xl border-2 border-zinc-800 px-4 py-3 text-lg font-black text-zinc-950 saturate-150"
-          :style="{ backgroundColor: pickedColor.hex }"
-        >
-          <div class="min-w-0 flex-1 truncate">{{ pickedName }}</div>
-          <div class="text-xs font-black tracking-widest text-zinc-950/70">OK</div>
+    <!-- Spin Result sheet -->
+    <BottomSheet v-model="resultOpen" title="Kết Quả">
+      <div class="rounded-xl border border-zinc-900 bg-zinc-950/40 p-5 text-center mt-2">
+        <div class="text-[9px] font-black tracking-widest text-zinc-500 uppercase">CHỌN TRÚNG</div>
+        
+        <div class="mt-4 flex flex-col items-center justify-center">
+          <!-- Monogram squircle large display -->
+          <div 
+            class="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black shadow-sm border"
+            :style="{ backgroundColor: pickedColor.hex + '1a', color: pickedColor.hex, borderColor: pickedColor.hex + '40' }"
+          >
+            {{ pickedName.slice(0, 1).toUpperCase() }}
+          </div>
+          
+          <div class="mt-3 text-sm font-black text-zinc-150 tracking-tight uppercase">{{ pickedName }}</div>
         </div>
       </div>
 
-      <div class="mt-4 grid grid-cols-2 gap-2">
+      <div class="mt-5 grid grid-cols-2 gap-3">
         <button
-          class="h-12 rounded-2xl border border-zinc-800 bg-zinc-900/40 text-sm font-semibold text-zinc-100 active:bg-zinc-800"
+          class="h-11 rounded-xl border border-zinc-900 bg-zinc-900/60 text-xs font-bold tracking-wider text-zinc-200 hover:bg-zinc-850 active:scale-[0.98] transition-all uppercase"
           @click="keepInPool"
         >
-          Giữ lại
+          Giữ lại pool
         </button>
         <button
-          class="h-12 rounded-2xl bg-violet-500 text-sm font-semibold text-zinc-950 active:bg-violet-400"
+          class="h-11 rounded-xl bg-zinc-100 text-xs font-black tracking-widest text-zinc-950 hover:bg-white active:scale-[0.98] transition-all uppercase"
           @click="keepAndRemove"
         >
-          Xóa
+          Xóa khỏi pool
         </button>
       </div>
     </BottomSheet>

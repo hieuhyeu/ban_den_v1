@@ -15,7 +15,7 @@ const mode = ref<'login' | 'register'>('login')
 const busy = ref(false)
 const errorText = ref<string | null>(null)
 
-const title = computed(() => (mode.value === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'))
+const title = computed(() => (mode.value === 'login' ? 'ĐĂNG NHẬP' : 'TẠO TÀI KHOẢN'))
 
 async function onSubmit() {
   const u = username.value.trim()
@@ -52,56 +52,56 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-[100svh] w-full max-w-md flex-col px-5 py-10">
-    <div class="mb-8">
-      <div class="text-sm font-medium text-zinc-400">Bắn đền</div>
-      <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ title }}</h1>
+  <div class="mx-auto flex min-h-[100svh] w-full max-w-md flex-col justify-center px-6 py-12 bg-billiard-bg bg-grain">
+    <div class="mb-10 text-center">
+      <div class="text-[10px] font-black tracking-widest text-zinc-500 uppercase">ỨNG DỤNG BẮN ĐỀN</div>
+      <h1 class="mt-2 text-2xl font-black tracking-tighter text-zinc-100">{{ title }}</h1>
     </div>
 
-    <form class="flex flex-1 flex-col gap-4" @submit.prevent="onSubmit">
+    <form class="flex flex-col gap-5" @submit.prevent="onSubmit">
       <label class="flex flex-col gap-2">
-        <div class="text-sm font-medium text-zinc-300">Username</div>
+        <div class="text-[10px] font-black tracking-widest text-zinc-500 uppercase">USERNAME</div>
         <input
           v-model="username"
           inputmode="text"
           autocomplete="username"
-          class="h-12 rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 text-base outline-none ring-0 placeholder:text-zinc-600 focus:border-zinc-600"
+          class="h-11 rounded-xl border border-zinc-800 bg-zinc-950/20 px-4 text-sm text-zinc-100 placeholder-zinc-700 outline-none focus:border-zinc-500 transition-all"
+          placeholder="Nhập tên đăng nhập"
         />
       </label>
 
       <label class="flex flex-col gap-2">
-        <div class="text-sm font-medium text-zinc-300">Password</div>
+        <div class="text-[10px] font-black tracking-widest text-zinc-500 uppercase">PASSWORD</div>
         <input
           v-model="password"
           type="password"
           autocomplete="current-password"
-          class="h-12 rounded-xl border border-zinc-800 bg-zinc-900/70 px-4 text-base outline-none placeholder:text-zinc-600 focus:border-zinc-600"
+          class="h-11 rounded-xl border border-zinc-800 bg-zinc-950/20 px-4 text-sm text-zinc-100 placeholder-zinc-700 outline-none focus:border-zinc-500 transition-all"
           placeholder="••••••••"
         />
       </label>
 
-      <div v-if="errorText" class="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+      <div v-if="errorText" class="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-xs font-bold text-rose-300 leading-normal">
         {{ errorText }}
       </div>
 
       <button
         type="submit"
-        class="mt-2 inline-flex h-12 items-center justify-center rounded-xl bg-violet-500 px-4 text-base font-semibold text-zinc-950 active:bg-violet-400 disabled:opacity-40"
+        class="mt-3 inline-flex h-11 items-center justify-center rounded-xl bg-zinc-100 text-xs font-black tracking-widest text-zinc-950 uppercase hover:bg-white active:scale-[0.98] transition-all disabled:opacity-40"
         :disabled="busy"
       >
-        {{ mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản' }}
+        {{ mode === 'login' ? 'ĐĂNG NHẬP' : 'TẠO TÀI KHOẢN' }}
       </button>
 
       <button
         type="button"
-        class="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 text-sm font-semibold text-zinc-200 active:bg-zinc-800 disabled:opacity-40"
+        class="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-900/35 text-xs font-bold tracking-wider text-zinc-300 hover:bg-zinc-800 active:scale-[0.98] transition-all"
         :disabled="busy"
         @click="mode = mode === 'login' ? 'register' : 'login'"
       >
-        {{ mode === 'login' ? 'Chưa có tài khoản? Tạo mới' : 'Đã có tài khoản? Đăng nhập' }}
+        {{ mode === 'login' ? 'TẠO TÀI KHOẢN MỚI' : 'ĐÃ CÓ TÀI KHOẢN? ĐĂNG NHẬP' }}
       </button>
-
-      <div class="mt-auto pt-6" />
     </form>
   </div>
 </template>
+

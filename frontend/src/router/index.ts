@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import ScoreboardPage from '../views/ScoreboardPage.vue'
+import RandomPage from '../views/RandomPage.vue'
+import PlayerEditPage from '../views/PlayerEditPage.vue'
+import LoginPage from '../views/LoginPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -7,22 +11,22 @@ const router = createRouter({
     {
       path: '/',
       name: 'scoreboard',
-      component: () => import('../views/ScoreboardPage.vue'),
+      component: ScoreboardPage,
       meta: { requiresAuth: true },
     },
     {
       path: '/random',
       name: 'random',
-      component: () => import('../views/RandomPage.vue'),
+      component: RandomPage,
       meta: { requiresAuth: true },
     },
     {
       path: '/players/:id/edit',
       name: 'playerEdit',
-      component: () => import('../views/PlayerEditPage.vue'),
+      component: PlayerEditPage,
       meta: { requiresAuth: true, transition: 'slide-left' },
     },
-    { path: '/login', name: 'login', component: () => import('../views/LoginPage.vue') },
+    { path: '/login', name: 'login', component: LoginPage },
   ],
 })
 

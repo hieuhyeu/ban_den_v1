@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
-const props = defineProps<{
-  modelValue: boolean
-  title?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean
+    title?: string
+    sheetClass?: string
+    showClose?: boolean
+    titleColor?: string
+  }>(),
+  {
+    showClose: true,
+  }
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
@@ -84,25 +92,40 @@ watch(
     >
       <div
         v-if="open"
-        class="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md rounded-t-3xl border border-zinc-800 bg-zinc-950 shadow-2xl transform-gpu will-change-transform"
+        class="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[430px] rounded-t-[28px] border-t border-x border-zinc-900 bg-zinc-950/95 shadow-2xl backdrop-blur-xl transform-gpu will-change-transform flex flex-col"
+        :class="sheetClass"
         role="dialog"
         aria-modal="true"
         :aria-label="title ?? 'Sheet'"
         tabindex="-1"
         @click.stop
       >
-        <div class="flex items-center justify-between px-5 pb-3 pt-3">
-          <div class="pointer-events-none absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-zinc-700/70" />
-          <div class="text-sm font-semibold text-zinc-200">{{ title }}</div>
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 pb-2.5 pt-5 flex-shrink-0 relative">
+          <!-- iOS-style Drag Handle -->
+          <div class="pointer-events-none absolute left-1/2 top-2.5 h-1 w-10 -translate-x-1/2 rounded-full bg-zinc-800" />
+          
+          <div class="flex items-center gap-2">
+            <span 
+              v-if="titleColor"
+              class="h-2.5 w-2.5 rounded-full animate-pulse" 
+              :style="{ backgroundColor: titleColor }"
+            />
+            <div class="text-[10px] font-black tracking-widest uppercase text-zinc-100">{{ title }}</div>
+          </div>
+          
           <button
+            v-if="showClose"
             ref="closeButtonEl"
-            class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-900 text-zinc-200 active:bg-zinc-800 active:scale-[0.98]"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/40 text-zinc-400 active:bg-zinc-800 active:text-zinc-200 active:scale-[0.96] transition-all"
             @click="close"
           >
-            <span class="text-lg leading-none">×</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
-        <div class="max-h-[75svh] overflow-auto px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        
+        <!-- Content Area -->
+        <div class="max-h-[75svh] overflow-y-auto px-5 pb-[calc(1.2rem+env(safe-area-inset-bottom))] scrollbar-none flex-1">
           <slot />
         </div>
       </div>
