@@ -22,10 +22,7 @@ function hexByKey(key: string) {
   return PLAYER_COLOR_OPTIONS.find((x) => x.key === key)?.hex ?? '#A855F7'
 }
 
-function initialOf(name: string) {
-  const t = (name ?? '').trim()
-  return t ? t.slice(0, 1).toUpperCase() : '?'
-}
+
 
 const playerById = computed(() => {
   const out: Record<string, { name: string; avatarUrl: string; colorHex: string }> = {}
