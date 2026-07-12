@@ -742,6 +742,39 @@ export const useBoardStore = defineStore('board', {
         void this.flushPending()
       })
     },
+    async applyAnLang(actorPlayerId: string, targetPlayerIds: string[], balls: Ball[]) {
+      return enqueue(async () => {
+        const auth = useAuthStore()
+        if (!auth.token || !auth.userId) return
+        this.ensureBoard()
+        const now = Date.now()
+        const actions: Array<Extract<PendingAction, { type: 'apply_event' }>> = []
+        
+        let timeOffset = 0
+        for (const ball of balls) {
+          for (const targetPlayerId of targetPlayerIds) {
+            actions.push({
+              type: 'apply_event',
+              id: `${now}_${timeOffset}_${Math.random().toString(16).slice(2)}`,
+              ts: now + timeOffset,
+              actorPlayerId,
+              targetPlayerId,
+              ball,
+            })
+            timeOffset++
+          }
+        }
+        if (!actions.length) return
+
+        let b = this.board!
+        for (const a of actions) b = applyActionToBoard(b, a)
+        this.board = b
+        this.pendingActions = this.pendingActions.concat(actions)
+        this.syncError = null
+        this.persistSoon()
+        void this.flushPending()
+      })
+    },
     async flushPending() {
       const auth = useAuthStore()
       if (!auth.token || !auth.userId) return

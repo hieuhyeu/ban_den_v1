@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { PLAYER_COLOR_OPTIONS } from '../stores/board'
 import type { Player, ScoreEvent } from '../stores/board'
 import ball3Url from '../assets/balls_images/RBABK_03.webp'
@@ -22,8 +22,6 @@ function hexByKey(key: string) {
   return PLAYER_COLOR_OPTIONS.find((x) => x.key === key)?.hex ?? '#A855F7'
 }
 
-
-
 const playerById = computed(() => {
   const out: Record<string, { name: string; avatarUrl: string; colorHex: string }> = {}
   for (const p of props.players) {
@@ -33,6 +31,26 @@ const playerById = computed(() => {
 })
 
 const reversedHistory = computed(() => props.history.slice().reverse())
+
+const highlightedSeq = ref<number | null>(null)
+let highlightTimeout: ReturnType<typeof setTimeout> | null = null
+
+watch(
+  () => props.history,
+  (newHist, oldHist) => {
+    if (!newHist || newHist.length === 0) return
+    const maxSeq = Math.max(...newHist.map(e => e.seq))
+    const oldMaxSeq = oldHist && oldHist.length > 0 ? Math.max(...oldHist.map(e => e.seq)) : 0
+    if (maxSeq > oldMaxSeq) {
+      highlightedSeq.value = maxSeq
+      if (highlightTimeout) clearTimeout(highlightTimeout)
+      highlightTimeout = setTimeout(() => {
+        highlightedSeq.value = null
+      }, 2000)
+    }
+  },
+  { deep: true, immediate: true }
+)
 
 function formatTime(ts: number) {
   const d = new Date(ts)
@@ -53,11 +71,12 @@ function formatTime(ts: number) {
       <div
         v-for="e in reversedHistory"
         :key="e.seq"
-        class="relative flex items-center justify-between gap-2 px-3 py-2.5 transition-all duration-200"
+        class="relative flex items-center justify-between gap-2 px-3 py-2.5 transition-all duration-700 ease-out"
         :class="[
           e.isDeleted ? 'opacity-20 line-through' : e.applied ? '' : 'opacity-40',
           !e.isDeleted && !e.applied ? 'history-stripes' : '',
-          !e.isDeleted && props.cursor > 0 && e.seq === props.cursor ? 'bg-zinc-900/60' : '',
+          e.seq === highlightedSeq ? 'bg-emerald-500/15 border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)] scale-[1.01] relative z-10' : '',
+          !e.isDeleted && props.cursor > 0 && e.seq === props.cursor && e.seq !== highlightedSeq ? 'bg-zinc-900/60' : '',
         ]"
       >
         <!-- Left: Ball & Seq -->

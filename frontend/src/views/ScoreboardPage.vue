@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomSheet from '../components/BottomSheet.vue'
 import HeaderBar from '../components/HeaderBar.vue'
@@ -54,9 +54,38 @@ if (!board.board) void board.refresh()
 
 const initialLoading = computed(() => !board.board && board.loading)
 
+const activeDoubleSelected = ref<Ball[]>([])
+const historyContainerRef = ref<HTMLElement | null>(null)
+
+watch(
+  () => board.history.length,
+  () => {
+    nextTick(() => {
+      if (historyContainerRef.value) {
+        historyContainerRef.value.scrollTop = 0
+      }
+    })
+  },
+  { immediate: true }
+)
+
 function openScore(playerId: string) {
   actorPlayerId.value = playerId
+  activeDoubleSelected.value = []
   scoreOpen.value = true
+}
+
+function onSelectionChange(payload: { canAnLang: boolean; doubleSelected: Ball[] }) {
+  activeDoubleSelected.value = payload.doubleSelected
+}
+
+function onConfirmAnLang() {
+  if (!actorPlayerId.value || !activeDoubleSelected.value.length) return
+  const actorId = actorPlayerId.value
+  const targetIds = board.activePlayers.filter((p) => p.id !== actorId).map((p) => p.id)
+  const balls = activeDoubleSelected.value
+  void board.applyAnLang(actorId, targetIds, balls)
+  scoreOpen.value = false
 }
 
 function onConfirmMulti(actorId: string, targetId: string, balls: Array<3 | 6 | 9>) {
@@ -135,13 +164,16 @@ function goEditPlayer(playerId: string) {
           </div>
         </div>
 
-        <!-- Permanent Inline History Log (Last 5 events) -->
-        <div class="mt-4 flex-1 min-h-0 flex flex-col border-t border-zinc-900/60 pt-3">
+        <!-- Permanent Inline History Log (Scrollable to see full history) -->
+        <div class="mt-4 flex-shrink-0 flex flex-col border-t border-zinc-900/60 pt-3">
           <div class="flex items-center justify-between mb-2 flex-shrink-0">
-            <span class="text-[9px] font-black tracking-widest text-zinc-500 uppercase">LỊCH SỬ </span>
+            <span class="text-[9px] font-black tracking-widest text-zinc-500 uppercase">LỊCH SỬ</span>
           </div>
-          <div class="flex-1 overflow-y-auto scrollbar-none">
-            <HistorySheet :history="board.history.slice(-5)" :players="board.activePlayers" :cursor="board.cursorSeq" />
+          <div 
+            ref="historyContainerRef"
+            class="overflow-y-auto scrollbar-none h-[212px]"
+          >
+            <HistorySheet :history="board.history" :players="board.activePlayers" :cursor="board.cursorSeq" />
           </div>
         </div>
       </template>
@@ -220,6 +252,8 @@ function goEditPlayer(playerId: string) {
         :players="board.activePlayers"
         :scores-by-player-id="board.scoresByPlayerId"
         @confirmMulti="onConfirmMulti"
+        @confirmAnLang="onConfirmAnLang"
+        @selectionChange="onSelectionChange"
       />
     </BottomSheet>
   </div>
