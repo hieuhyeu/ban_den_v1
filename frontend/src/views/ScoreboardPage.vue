@@ -8,6 +8,7 @@ import PlayerCard from '../components/PlayerCard.vue'
 import ScoreSheet from '../components/ScoreSheet.vue'
 import { useAuthStore } from '../stores/auth'
 import { useBoardStore } from '../stores/board'
+import type { Ball } from '../stores/board'
 
 const router = useRouter()
 const auth = useAuthStore()
